@@ -1,0 +1,18 @@
+{
+    "title": "My Bus Tracker",
+    "subtitle": "Your neighborhood description here",
+    "stops": {
+        "M15 — 1st Ave & E 14th St": {
+            "stop_id": "MTA_400062",
+            "route_filter": "MTA NYCT_M15",
+            "direction": "southbound → South Ferry",
+            "walk_minutes": 3
+        },
+        "M14A — 14th St & Avenue A": {
+            "stop_id": "MTA_401107",
+            "route_filter": "MTA NYCT_M14A",
+            "direction": "westbound → Chelsea Piers",
+            "walk_minutes": 5
+        }
+    }
+}
