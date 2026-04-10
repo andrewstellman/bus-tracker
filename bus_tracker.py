@@ -268,32 +268,32 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   * {{ box-sizing: border-box; margin: 0; padding: 0; }}
   body {{
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: var(--bg); color: var(--text); padding: 16px;
-    max-width: 600px; margin: 0 auto;
+    background: var(--bg); color: var(--text); padding: 20px;
+    max-width: 700px; margin: 0 auto; font-size: 18px;
   }}
-  h1 {{ font-size: 1.4em; margin-bottom: 4px; }}
-  .subtitle {{ color: var(--muted); font-size: 0.85em; margin-bottom: 16px; }}
-  .updated {{ color: var(--muted); font-size: 0.75em; text-align: right; margin-bottom: 12px; }}
+  h1 {{ font-size: 1.8em; margin-bottom: 6px; }}
+  .subtitle {{ color: var(--muted); font-size: 1.05em; margin-bottom: 20px; }}
+  .updated {{ color: var(--muted); font-size: 0.9em; text-align: right; margin-bottom: 14px; }}
   .stop-card {{
-    background: var(--card); border-radius: 12px; padding: 16px;
-    margin-bottom: 12px; border-left: 4px solid var(--accent);
+    background: var(--card); border-radius: 12px; padding: 20px;
+    margin-bottom: 14px; border-left: 4px solid var(--accent);
   }}
-  .stop-label {{ font-weight: 600; font-size: 1.05em; margin-bottom: 2px; }}
-  .stop-dir {{ color: var(--muted); font-size: 0.8em; margin-bottom: 10px; }}
+  .stop-label {{ font-weight: 600; font-size: 1.3em; margin-bottom: 4px; }}
+  .stop-dir {{ color: var(--muted); font-size: 0.95em; margin-bottom: 12px; }}
   .arrival {{
     display: flex; justify-content: space-between; align-items: center;
-    padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
   }}
   .arrival:last-child {{ border-bottom: none; }}
   .route-badge {{
     background: var(--accent); color: var(--blue); font-weight: 700;
-    padding: 2px 10px; border-radius: 6px; font-size: 0.95em; min-width: 42px;
+    padding: 4px 14px; border-radius: 6px; font-size: 1.15em; min-width: 50px;
     text-align: center;
   }}
-  .arr-info {{ flex: 1; margin-left: 12px; }}
-  .arr-time {{ font-size: 1.1em; font-weight: 600; }}
-  .arr-stops {{ color: var(--muted); font-size: 0.8em; }}
-  .arr-action {{ font-size: 0.85em; font-weight: 600; text-align: right; min-width: 110px; }}
+  .arr-info {{ flex: 1; margin-left: 14px; }}
+  .arr-time {{ font-size: 1.35em; font-weight: 600; }}
+  .arr-stops {{ color: var(--muted); font-size: 0.95em; }}
+  .arr-action {{ font-size: 1.05em; font-weight: 600; text-align: right; min-width: 130px; }}
   .action-go {{ color: var(--green); }}
   .action-soon {{ color: var(--yellow); }}
   .action-now {{ color: var(--red); font-weight: 700; }}
@@ -301,9 +301,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   .no-buses {{ color: var(--muted); font-style: italic; padding: 8px 0; }}
   .error-msg {{ color: var(--red); padding: 8px 0; }}
   .refresh-btn {{
-    display: block; width: 100%; padding: 12px; margin-top: 8px;
+    display: block; width: 100%; padding: 14px; margin-top: 12px;
     background: var(--accent); color: var(--text); border: none;
-    border-radius: 8px; font-size: 1em; cursor: pointer;
+    border-radius: 8px; font-size: 1.1em; cursor: pointer;
   }}
   .refresh-btn:active {{ opacity: 0.7; }}
 </style>
