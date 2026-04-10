@@ -44,6 +44,7 @@ CONFIG_FILE = Path(__file__).parent / "config.json"
 DEFAULT_CONFIG = {
     "title": "MTA Bus Tracker",
     "subtitle": "",
+    "cushion_minutes": 0,
     "stops": {},
 }
 
@@ -173,7 +174,7 @@ def fetch_stop_arrivals(api_key, stop_id, route_filter=None):
     return {"error": None, "arrivals": arrivals}
 
 
-def fetch_all_stops(api_key, stops):
+def fetch_all_stops(api_key, stops, cushion_minutes=0):
     """Fetch arrivals for every configured stop. Returns a list of dicts."""
     results = []
     for label, cfg in stops.items():
@@ -182,6 +183,7 @@ def fetch_all_stops(api_key, stops):
             "label": label,
             "direction": cfg.get("direction", ""),
             "walk_minutes": cfg.get("walk_minutes", 5),
+            "cushion_minutes": cushion_minutes,
             "error": data["error"],
             "arrivals": data["arrivals"],
         })
@@ -190,7 +192,7 @@ def fetch_all_stops(api_key, stops):
 
 # ── CLI display ────────────────────────────────────────────────────────────
 
-def format_arrival(arr, walk_minutes):
+def format_arrival(arr, walk_minutes, cushion_minutes=0):
     """Format a single arrival line for the terminal."""
     mins = arr["minutes_away"]
     if mins is None:
@@ -203,10 +205,11 @@ def format_arrival(arr, walk_minutes):
     stops = arr["stops_away"]
     stops_str = f" ({stops} stop{'s' if stops != 1 else ''} away)" if stops is not None else ""
 
-    # Show whether you'd make it
+    # How much time you have after walk + cushion
     hurry = ""
     if mins is not None:
-        buffer = mins - walk_minutes
+        need = walk_minutes + cushion_minutes
+        buffer = mins - need
         if buffer < 0:
             hurry = "  ✗ already too late"
         elif buffer < 2:
@@ -214,7 +217,7 @@ def format_arrival(arr, walk_minutes):
         elif buffer < 5:
             hurry = f"  ⏳ leave in ~{buffer:.0f} min"
         else:
-            hurry = f"  ✓ plenty of time ({buffer:.0f} min cushion)"
+            hurry = f"  ✓ plenty of time ({buffer:.0f} min to spare)"
 
     return f"  {arr['route']:>4}  {time_str}{stops_str}{hurry}"
 
@@ -224,14 +227,16 @@ def print_dashboard(api_key, config):
     now = datetime.now()
     title = config.get("title", "MTA Bus Tracker")
     subtitle = config.get("subtitle", "")
+    cushion = config.get("cushion_minutes", 0)
 
     print(f"\n🚌 {title} — {now.strftime('%I:%M %p, %A %B %d')}")
     if subtitle:
-        print(f"   {subtitle}\n")
-    else:
-        print()
+        print(f"   {subtitle}")
+    if cushion:
+        print(f"   (includes +{cushion} min cushion)")
+    print()
 
-    results = fetch_all_stops(api_key, config["stops"])
+    results = fetch_all_stops(api_key, config["stops"], cushion)
     for stop in results:
         print(f"📍 {stop['label']}")
         direction_str = f"Direction: {stop['direction']}  •  " if stop["direction"] else ""
@@ -242,7 +247,7 @@ def print_dashboard(api_key, config):
             print("   No buses currently tracked on this route.")
         else:
             for arr in stop["arrivals"][:4]:  # show up to 4 upcoming buses
-                print(format_arrival(arr, stop["walk_minutes"]))
+                print(format_arrival(arr, stop["walk_minutes"], cushion))
         print()
 
 
@@ -337,7 +342,8 @@ function render(data) {{
     card.className = 'stop-card';
 
     let html = `<div class="stop-label">${{esc(stop.label)}}</div>`;
-    html += `<div class="stop-dir">${{esc(stop.direction)}} · Walk ~${{stop.walk_minutes}} min</div>`;
+    const cushionNote = stop.cushion_minutes ? ` + ${{stop.cushion_minutes}} cushion` : '';
+    html += `<div class="stop-dir">${{esc(stop.direction)}} · Walk ~${{stop.walk_minutes}} min${{cushionNote}}</div>`;
 
     if (stop.error) {{
       html += `<div class="error-msg">⚠ ${{esc(stop.error)}}</div>`;
@@ -354,11 +360,12 @@ function render(data) {{
           if (mins < 1) {{ timeStr = 'Now'; }}
           else {{ timeStr = Math.round(mins) + ' min'; }}
 
-          const buffer = mins - stop.walk_minutes;
+          const need = stop.walk_minutes + (stop.cushion_minutes || 0);
+          const buffer = mins - need;
           if (buffer < 0) {{ actionStr = 'Too late'; actionClass = 'action-late'; }}
           else if (buffer < 2) {{ actionStr = '⚡ Leave NOW'; actionClass = 'action-now'; }}
           else if (buffer < 5) {{ actionStr = 'Leave in ~' + Math.round(buffer) + ' min'; actionClass = 'action-soon'; }}
-          else {{ actionStr = Math.round(buffer) + ' min cushion'; actionClass = 'action-go'; }}
+          else {{ actionStr = Math.round(buffer) + ' min to spare'; actionClass = 'action-go'; }}
         }}
 
         const stopsAway = arr.stops_away !== null ? arr.stops_away + ' stop' + (arr.stops_away !== 1 ? 's' : '') + ' away' : '';
@@ -394,6 +401,7 @@ setInterval(refresh, REFRESH_MS);
 def make_handler(api_key, config):
     """Create an HTTP request handler with the API key and config baked in."""
     stops = config["stops"]
+    cushion = config.get("cushion_minutes", 0)
     title = config.get("title", "MTA Bus Tracker")
     subtitle = config.get("subtitle", "")
     rendered_html = HTML_TEMPLATE.format(
@@ -404,24 +412,27 @@ def make_handler(api_key, config):
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
-            if self.path == "/api/arrivals":
-                results = fetch_all_stops(api_key, stops)
-                # Serialize datetimes to ISO strings
-                for stop in results:
-                    for arr in stop["arrivals"]:
-                        if arr["expected_arrival"]:
-                            arr["expected_arrival"] = arr["expected_arrival"].isoformat()
-                payload = json.dumps(results).encode()
-                self.send_response(200)
-                self.send_header("Content-Type", "application/json")
-                self.send_header("Access-Control-Allow-Origin", "*")
-                self.end_headers()
-                self.wfile.write(payload)
-            else:
-                self.send_response(200)
-                self.send_header("Content-Type", "text/html; charset=utf-8")
-                self.end_headers()
-                self.wfile.write(rendered_html)
+            try:
+                if self.path == "/api/arrivals":
+                    results = fetch_all_stops(api_key, stops, cushion)
+                    # Serialize datetimes to ISO strings
+                    for stop in results:
+                        for arr in stop["arrivals"]:
+                            if arr["expected_arrival"]:
+                                arr["expected_arrival"] = arr["expected_arrival"].isoformat()
+                    payload = json.dumps(results).encode()
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.end_headers()
+                    self.wfile.write(payload)
+                else:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/html; charset=utf-8")
+                    self.end_headers()
+                    self.wfile.write(rendered_html)
+            except BrokenPipeError:
+                pass  # Browser closed connection early — harmless
 
         def log_message(self, format, *args):
             pass
